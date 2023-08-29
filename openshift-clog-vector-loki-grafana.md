@@ -14,6 +14,8 @@
   * [Integrate Loki to Grafana](#integrate-loki-to-grafana)
   * [Final Check Outputs](#final-check-outputs)
   * [Access Grafana gui and console](#access-grafana-gui-and-console)
+  * [Query Loki Logs with LogCLI](#query-loki-logs-with-logcli)
+  * [Links](#links)
 
 # openshift-logging-solutions
 This repository demonstrates how to configure OpenShift Cluster-Logging Stack Vector as a forwarder to LokiStack, using an S3 bucket from OpenShift Data Foundation instead of AWS S3. It also shows how to integrate Loki to Grafana for logs views.
@@ -651,6 +653,47 @@ https://console-openshift-console.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/
 
 grafana GUI:  
 https://grafana-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/
+
+## Query Loki Logs with LogCLI
+- Download and make logcli  
+  click [Download LogCLI](https://grafana.com/docs/loki/v2.8.x/tools/logcli/)
+  
+- Get Loki Bearer Token from secret  
+```shellSession
+$ oc -n openshift-logging get secret lokistack-gateway-bearer-token  -o jsonpath='{.data.token}' |base64 -d > loki-bearer-token
+```
+- Get Loki Route
+```shellSession
+$ oc -n openshift-logging get route
+NAME           HOST/PORT                                                                      PATH   SERVICES                    PORT     TERMINATION          WILDCARD
+logging-loki   logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com          logging-loki-gateway-http   public   reencrypt            None
+```
+- Start Access Loki Log with LogCLI
+```shellSession
+$ alias lc='logcli --addr https://logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/api/logs/v1/application --bearer-token-file=loki-token1 --tls-skip-verify'
+$ lc labels
+2023/08/29 17:14:07 https://logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/api/logs/v1/application/loki/api/v1/labels?end=1693343647702725345&start=1693340047702725345
+kubernetes_container_name
+kubernetes_host
+kubernetes_namespace_name
+kubernetes_pod_name
+log_type
+
+$ lc query '{log_type="application"}'
+$ lc query '{kubernetes_namespace_name="multicluster-engine"}' --tail
+```
+```json
+lc query '{kubernetes_namespace_name="multicluster-engine"}' --output jsonl|jq
+{
+  "labels": {
+    "kubernetes_container_name": "backplane-operator",
+    "kubernetes_host": "master-1",
+    "kubernetes_pod_name": "multicluster-engine-operator-7459bf675d-5z6rk"
+  },
+  "line": "{\"@timestamp\":\"2023-08-29T21:16:21.136820483Z\",\"file\":\"/var/log/pods/multicluster-engine_multicluster-engine-operator-7459bf675d-5z6rk_6c10923d-fdfd-4878-a4c1-b0b305708138/backplane-operator/0.log\",\"hostname\":\"master-1\",\"kubernetes\":{\"annotations\":{\"alm-examples\":\"[{\\\"apiVersion\\\": \\\"multicluster.openshift.io/v1\\\", \\\"kind\\\": \\\"MultiClusterEngine\\\", \\\"metadata\\\": {\\\"name\\\": \\\"multiclusterengine\\\"}, \\\"spec\\\": {}}]\",\"capabilities\":\"Seamless Upgrades\",\"categories\":\"Integration & Delivery\",\"certified\":\"true\",\"createdAt\":\"2023-06-12T16:56:48Z\",\"description\":\"Foundational components for central management of multiple OpenShift Container Platform and Kubernetes clusters\",\"k8s.ovn.org/pod-networks\":\"{\\\"default\\\":{\\\"ip_addresses\\\":[\\\"10.128.0.64/23\\\"],\\\"mac_address\\\":\\\"0a:58:0a:80:00:40\\\",\\\"gateway_ips\\\":[\\\"10.128.0.1\\\"],\\\"ip_address\\\":\\\"10.128.0.64/23\\\",\\\"gateway_ip\\\":\\\"10.128.0.1\\\"}}\",\"k8s.v1.cni.cncf.io/network-status\":\"[{\\n    \\\"name\\\": \\\"ovn-kubernetes\\\",\\n    \\\"interface\\\": \\\"eth0\\\",\\n    \\\"ips\\\": [\\n        \\\"10.128.0.64\\\"\\n    ],\\n    \\\"mac\\\": \\\"0a:58:0a:80:00:40\\\",\\n    \\\"default\\\": true,\\n    \\\"dns\\\": {}\\n}]\",\"k8s.v1.cni.cncf.io/networks-status\":\"[{\\n    \\\"name\\\": \\\"ovn-kubernetes\\\",\\n    \\\"interface\\\": \\\"eth0\\\",\\n    \\\"ips\\\": [\\n        \\\"10.128.0.64\\\"\\n    ],\\n    \\\"mac\\\": \\\"0a:58:0a:80:00:40\\\",\\n    \\\"default\\\": true,\\n    \\\"dns\\\": {}\\n}]\",\"olm.operatorGroup\":\"default\",\"olm.operatorNamespace\":\"multicluster-engine\",\"olm.skipRange\":\">=2.2.0 <2.3.0\",\"olm.targetNamespaces\":\"multicluster-engine\",\"openshift.io/scc\":\"restricted-v2\",\"operatorframework.io/initialization-resource\":\"{\\\"apiVersion\\\":\\\"multicluster.openshift.io/v1\\\", \\\"kind\\\":\\\"MultiClusterEngine\\\",\\\"metadata\\\":{\\\"name\\\":\\\"engine\\\"},\\\"spec\\\": {}}\",\"operatorframework.io/properties\":\"{\\\"properties\\\":[{\\\"type\\\":\\\"olm.gvk\\\",\\\"value\\\":{\\\"group\\\":\\\"multicluster.openshift.io\\\",\\\"kind\\\":\\\"MultiClusterEngine\\\",\\\"version\\\":\\\"v1\\\"}},{\\\"type\\\":\\\"olm.package\\\",\\\"value\\\":{\\\"packageName\\\":\\\"multicluster-engine\\\",\\\"version\\\":\\\"2.3.0\\\"}}]}\",\"operatorframework.io/suggested-namespace\":\"multicluster-engine\",\"operators.openshift.io/infrastructure-features\":\"[\\\"disconnected\\\", \\\"proxy-aware\\\", \\\"fips\\\"]\",\"operators.openshift.io/valid-subscription\":\"[\\\"OpenShift Kubernetes Engine\\\", \\\"OpenShift Container Platform\\\", \\\"OpenShift Platform Plus\\\"]\",\"operators.operatorframework.io/internal-objects\":\"[]\",\"seccomp.security.alpha.kubernetes.io/pod\":\"runtime/default\",\"support\":\"Red Hat\"},\"container_id\":\"cri-o://1bebf186695b35978ba2156f0ae06d95e053f79dca51366c2b435992b005cc1c\",\"container_image\":\"registry.redhat.io/multicluster-engine/backplane-rhel8-operator@sha256:411f667cedd34b3bca5ce795b8dd928000a486b98dfc53aabc6c507974b2759e\",\"container_name\":\"backplane-operator\",\"labels\":{\"control-plane\":\"backplane-operator\",\"pod-template-hash\":\"7459bf675d\"},\"namespace_id\":\"ce441e98-0d6e-4147-a24e-704d1414334a\",\"namespace_labels\":{\"kubernetes_io_metadata_name\":\"multicluster-engine\",\"olm_operatorgroup_uid_f23b2ee2-09f9-42fa-8945-cb2c86f49100\":\"\",\"pod-security_kubernetes_io_audit\":\"restricted\",\"pod-security_kubernetes_io_audit-version\":\"v1.24\",\"pod-security_kubernetes_io_warn\":\"restricted\",\"pod-security_kubernetes_io_warn-version\":\"v1.24\"},\"namespace_name\":\"multicluster-engine\",\"pod_id\":\"6c10923d-fdfd-4878-a4c1-b0b305708138\",\"pod_ip\":\"10.128.0.64\",\"pod_name\":\"multicluster-engine-operator-7459bf675d-5z6rk\",\"pod_owner\":\"ReplicaSet/multicluster-engine-operator-7459bf675d\"},\"level\":\"debug\",\"log_type\":\"application\",\"message\":\"2023-08-29T21:16:21.136Z\\tDEBUG\\tcontroller-runtime.webhook.webhooks\\twrote response\\t{\\\"webhook\\\": \\\"/validate-multicluster-openshift-io-v1-multiclusterengine\\\", \\\"code\\\": 200, \\\"reason\\\": \\\"\\\", \\\"UID\\\": \\\"7e158644-7285-4140-b42c-5cef99f7e312\\\", \\\"allowed\\\": true}\",\"openshift\":{\"cluster_id\":\"3059ccb7-ed7a-4ceb-b41f-b9c699d73d00\",\"sequence\":11701}}",
+  "timestamp": "2023-08-29T17:16:28.861006731-04:00"
+}
+```
 
 ## Links
 
