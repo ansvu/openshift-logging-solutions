@@ -670,7 +670,7 @@ logging-loki   logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert
 ```
 - Start Access Loki Log with LogCLI
 ```shellSession
-$ alias lc='logcli --addr https://logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/api/logs/v1/application --bearer-token-file=loki-token1 --tls-skip-verify'
+$ alias lc='logcli --addr https://logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/api/logs/v1/application --bearer-token-file=loki-bearer-token --tls-skip-verify'
 $ lc labels
 2023/08/29 17:14:07 https://logging-loki-openshift-logging.apps.abi.hubcluster-1.lab.eng.cert.redhat.com/api/logs/v1/application/loki/api/v1/labels?end=1693343647702725345&start=1693340047702725345
 kubernetes_container_name
@@ -683,7 +683,7 @@ $ lc query '{log_type="application"}'
 $ lc query '{kubernetes_namespace_name="multicluster-engine"}' --tail
 ```
 ```json
-lc query '{kubernetes_namespace_name="multicluster-engine"}' --output jsonl|jq
+$ lc query '{kubernetes_namespace_name="multicluster-engine"}' --output jsonl|jq
 {
   "labels": {
     "kubernetes_container_name": "backplane-operator",
