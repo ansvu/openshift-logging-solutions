@@ -25,7 +25,7 @@ This repository demonstrates how to configure OpenShift Cluster-Logging Stack Ve
 ![Loki Components](img/loki-components.png)
 
 ### Loki Data flow with Vector
-![Loki Dataflow With Vector](img/loki-dataflow.png)
+![Loki Dataflow With Vector](img/loki-data-flow.png)
 
 ## Prerequisites
 In order to install and configure OpenShift Logging the following prerequisites must be met before starting the process.
